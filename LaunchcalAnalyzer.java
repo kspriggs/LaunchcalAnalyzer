@@ -17,13 +17,19 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 class LaunchcalAnalyzer {
-	private static String currentOS = "Android S";
-	private static String nextOS = "Android T";
+	private static String currentOS = "Android V";
+	private static String nextOS = "Android W";
 	private static String APP_MANIFEST = "AndroidManifest.xml";
 	private static String S_FRAMEWORK_MANIFEST = "S_FrameworksBaseCoreResAndroidManifest.xml";
 	private static String S_DOWNLOADPROVIDER_MANIFEST = "S_PackagesProvidersDownloadProviderAndroidManifest.xml";
 	private static String T_FRAMEWORK_MANIFEST = "T_FrameworksBaseCoreResAndroidManifest.xml";
 	private static String T_DOWNLOADPROVIDER_MANIFEST = "T_PackagesProvidersDownloadProviderAndroidManifest.xml";
+	private static String U_FRAMEWORK_MANIFEST = "U_FrameworksBaseCoreResAndroidManifest.xml";
+	private static String U_DOWNLOADPROVIDER_MANIFEST = "U_PackagesProvidersDownloadProviderAndroidManifest.xml";
+	private static String V_FRAMEWORK_MANIFEST = "V_FrameworksBaseCoreResAndroidManifest.xml";
+	private static String V_DOWNLOADPROVIDER_MANIFEST = "V_PackagesProvidersDownloadProviderAndroidManifest.xml";
+	private static String W_FRAMEWORK_MANIFEST = "W_FrameworksBaseCoreResAndroidManifest.xml";
+	private static String W_DOWNLOADPROVIDER_MANIFEST = "W_PackagesProvidersDownloadProviderAndroidManifest.xml";
 	public AndroidManifest frameworkManifestCurrent;
 	public AndroidManifest downloadProviderManifestCurrent;
 	public AndroidManifest frameworkManifestNext;
@@ -31,20 +37,20 @@ class LaunchcalAnalyzer {
 
 	public LaunchcalAnalyzer() {
 		ClassLoader classLoader = getClass().getClassLoader();
-		File manifestFile = new File(classLoader.getResource(S_FRAMEWORK_MANIFEST).getFile());
+		File manifestFile = new File(classLoader.getResource(V_FRAMEWORK_MANIFEST).getFile());
 		frameworkManifestCurrent = populateAndroidPermissions(manifestFile);
 		System.out.println("Size of Framework Manifest permission declarations: "+frameworkManifestCurrent.definedPermissionsMap.size());
 		System.out.println("Size of Framework Manifest permission usages: "+frameworkManifestCurrent.usedPermissionsMap.size());
-		manifestFile = new File(classLoader.getResource(S_DOWNLOADPROVIDER_MANIFEST).getFile());
+		manifestFile = new File(classLoader.getResource(V_DOWNLOADPROVIDER_MANIFEST).getFile());
 		downloadProviderManifestCurrent = populateAndroidPermissions(manifestFile);
 		System.out.println("Size of Framework Manifest permission declarations: "+downloadProviderManifestCurrent.definedPermissionsMap.size());
 		System.out.println("Size of Framework Manifest permission usages: "+downloadProviderManifestCurrent.usedPermissionsMap.size());
 
-		manifestFile = new File(classLoader.getResource(T_FRAMEWORK_MANIFEST).getFile());
+		manifestFile = new File(classLoader.getResource(W_FRAMEWORK_MANIFEST).getFile());
 		frameworkManifestNext = populateAndroidPermissions(manifestFile);
 		System.out.println("Size of Framework Manifest permission declarations: "+frameworkManifestCurrent.definedPermissionsMap.size());
 		System.out.println("Size of Framework Manifest permission usages: "+frameworkManifestCurrent.usedPermissionsMap.size());
-		manifestFile = new File(classLoader.getResource(T_DOWNLOADPROVIDER_MANIFEST).getFile());
+		manifestFile = new File(classLoader.getResource(W_DOWNLOADPROVIDER_MANIFEST).getFile());
 		downloadProviderManifestNext = populateAndroidPermissions(manifestFile);
 		System.out.println("Size of Framework Manifest permission declarations: "+downloadProviderManifestCurrent.definedPermissionsMap.size());
 		System.out.println("Size of Framework Manifest permission usages: "+downloadProviderManifestCurrent.usedPermissionsMap.size());
@@ -258,7 +264,7 @@ class LaunchcalAnalyzer {
 			System.out.println("Usage for New     apks: LaunchcalAnalyzer <PATH to New apk>");
 			System.out.println("Usage for Updated apks: LaunchcalAnalyzer <PATH to New apk> <PATH to Existing apk>");
 			//Run a comparison of S vs. T manifest - temporary!!!!
-			System.out.println("The following is a comparison of the S manifest to T manifests - this can be disabled.");
+			System.out.println("The following is a comparison of the V manifest to W manifests - this can be disabled.");
 			for(String s : analyzer.frameworkManifestCurrent.definedPermissionsMap.keySet()) {
 				//System.out.println("\t"+s+"\t"+analyzer.frameworkManifestCurrent.definedPermissionsMap.get(s).protectionLevel);
 				if(!analyzer.frameworkManifestNext.definedPermissionsMap.containsKey(s)) {
@@ -506,9 +512,22 @@ class LaunchcalAnalyzer {
 			if(dangerousPermissions) {
 				System.out.println("Note: Dangerous permissions modified - check for pre-grant requirements.");
 				System.out.println("\tSee MBA 13.2.2 Pregrant permission policy for more details -\n\thttps://docs.partner.android.com/gms/policies/domains/mba?authuser=3#mba-pregrant-permissions.");
+				System.out.println("\tIf pre-granting any dangerous permissions, please provide confirmation of Google waiver and GTS results prior to merge.");
 			}
 			if(privilegedPermissions) {
 				System.out.println("Note: Privilged permissions modified - modify privapp-permissions xml when integrating.");
+			}
+			// Flag any permissions that are changing
+			for(String permission : appManifest.usedPermissionsMap.keySet()) {
+				String protectionLevelCurrent = analyzer.findPermissionProtectionLevel(analyzer.frameworkManifestCurrent, analyzer.downloadProviderManifestCurrent, permission, appManifest);
+				String protectionLevelNext = analyzer.findPermissionProtectionLevel(analyzer.frameworkManifestNext, analyzer.downloadProviderManifestNext, permission, appManifest);
+				if(!protectionLevelNext.equals(protectionLevelCurrent)) {
+					System.out.println(String.format("\nNote: Permission protectionLevel change: \t%-60s\t%-40s\t%-40s",permission,protectionLevelCurrent, protectionLevelNext));
+					if(permission.equals("android.permission.SCHEDULE_EXACT_ALARM")) {
+						System.out.println("Please ask vendor to confirm usage of android.permission.SCHEDULE_EXACT_ALARM as this permission becomes privileged in Android U. What alternatives are there?");
+					        System.out.println("https://developer.android.com/about/versions/14/changes/schedule-exact-alarms");
+					}
+				}
 			}
 		}
 	}
